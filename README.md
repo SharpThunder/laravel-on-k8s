@@ -1,6 +1,5 @@
 # Laravel on Kubernetes
 
-[![ci](https://github.com/SharpThunder/laravel-on-k8s/actions/workflows/ci.yml/badge.svg)](https://github.com/SharpThunder/laravel-on-k8s/actions/workflows/ci.yml)
 ![PHP](https://img.shields.io/badge/PHP_8.3-FPM-777bb4?style=flat-square&logo=php&logoColor=white)
 ![Laravel](https://img.shields.io/badge/Laravel-12-ff2d20?style=flat-square&logo=laravel&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-chart-0f1689?style=flat-square&logo=helm&logoColor=white)
@@ -9,8 +8,6 @@
 A proof of concept for moving a **VM-based Laravel estate** (Nginx + PHP-FPM, cron, supervisord, uploads on local disk) onto Kubernetes **without rewriting the app**.
 
 It uses a stock Laravel app as the example, but the chart is shaped by the constraints of a real legacy PHP platform: two apps sharing one database server, user uploads on disk, queue workers, a crontab, and releases that must not drop requests.
-
-CI builds the images, deploys everything to a throwaway **kind** cluster, runs a smoke test, then does a rolling upgrade while an in-cluster client fires a request every 100 ms and **fails the build if a single request fails**.
 
 ---
 
@@ -112,4 +109,4 @@ To see a zero-downtime rollout yourself:
 
 ## 🤖 AI usage
 
-The design, the constraints and the VM-to-Kubernetes mapping come from my own work migrating a legacy PHP platform. I used an AI assistant (Claude) to write this public version from scratch with a stock Laravel app, and to draft the README and CI. I've reviewed all of it and can explain every choice.
+The design, the constraints and the VM-to-Kubernetes mapping come from my own work migrating a legacy PHP platform. I used an AI assistant (Claude) to write this public version from scratch with a stock Laravel app, and to draft the README. I've reviewed all of it and can explain every choice.
