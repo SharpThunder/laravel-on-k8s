@@ -27,6 +27,20 @@ It uses a stock Laravel app as the example, but the chart is shaped by the const
 
 ---
 
+## 🤔 Why is `public/` shared storage?
+
+In a textbook Laravel app, `public/` is just code and assets, baked into the image and never written to. Uploads go to `storage/app/public` and appear under `public/storage` through a symlink.
+
+Real apps drift. Over the years, code in a company's PHP estate ends up writing files straight into `public/`: exports, generated PDFs, user avatars, a folder someone added in 2016 that one customer still depends on. Moving to Kubernetes can't break that on day one, so the chart:
+
+- mounts a volume where those files live, **writable by FPM** and **read-only for Nginx**, which serves them directly;
+- keeps it on a PVC with `helm.sh/resource-policy: keep`, so uninstalling a release never deletes user files;
+- leaves the proper fix (object storage such as S3 behind Laravel's filesystem) for when the app can change.
+
+> People do weird things in companies. The platform's job is to carry them over safely first, then clean up.
+
+---
+
 ## 🏗️ Layout
 
 ```mermaid
