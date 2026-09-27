@@ -3,7 +3,7 @@
 ![PHP](https://img.shields.io/badge/PHP_8.3-FPM-777bb4?style=flat-square&logo=php&logoColor=white)
 ![Laravel](https://img.shields.io/badge/Laravel-12-ff2d20?style=flat-square&logo=laravel&logoColor=white)
 ![Helm](https://img.shields.io/badge/Helm-chart-0f1689?style=flat-square&logo=helm&logoColor=white)
-![Kubernetes](https://img.shields.io/badge/k3d_/_kind-326ce5?style=flat-square&logo=kubernetes&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/k3d-326ce5?style=flat-square&logo=kubernetes&logoColor=white)
 
 A proof of concept for moving a **VM-based Laravel estate** (Nginx + PHP-FPM, cron, supervisord, uploads on local disk) onto Kubernetes **without rewriting the app**.
 
@@ -54,8 +54,8 @@ flowchart LR
 app/                  Dockerfile (fpm + web targets), nginx/FPM/PHP config, demo route
 charts/laravel-app/   the Helm chart, installed once per app
 values/               api.yaml (worker + scheduler), web.yaml (HTTP only)
-deploy/dev/           MariaDB + Mailpit for local and CI only
-scripts/              deploy, smoke test, zero-downtime test
+deploy/dev/           MariaDB + Mailpit for local only
+scripts/              deploy, smoke test, zero-downtime check
 ```
 
 ---
