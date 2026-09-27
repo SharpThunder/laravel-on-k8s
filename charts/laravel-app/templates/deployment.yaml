@@ -29,7 +29,7 @@ spec:
     spec:
       securityContext:
         fsGroup: 82 # www-data on Alpine, so FPM can write uploads
-      terminationGracePeriodSeconds: 30
+      terminationGracePeriodSeconds: 45
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -63,9 +63,10 @@ spec:
           lifecycle:
             preStop:
               # Kubernetes sends SIGTERM, which makes FPM drop in-flight requests.
-              # Wait for the endpoint to be removed, then quit gracefully.
+              # Wait for the endpoint to be removed everywhere, then quit gracefully.
+              # FPM outlives Nginx so requests Nginx is still finishing always reach PHP.
               exec:
-                command: ["sh", "-c", "sleep 5 && kill -QUIT 1"]
+                command: ["sh", "-c", "sleep 15 && kill -QUIT 1"]
           resources: {{- toYaml .Values.fpm.resources | nindent 12 }}
           {{- if .Values.uploads.enabled }}
           volumeMounts:
@@ -93,7 +94,7 @@ spec:
           lifecycle:
             preStop:
               exec:
-                command: ["sh", "-c", "sleep 5 && nginx -s quit"]
+                command: ["sh", "-c", "sleep 10 && nginx -s quit"]
           resources: {{- toYaml .Values.web.resources | nindent 12 }}
           {{- if .Values.uploads.enabled }}
           volumeMounts:
