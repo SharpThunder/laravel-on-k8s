@@ -1,0 +1,9 @@
+{{ include "laravel-app.fullname" . }} is deployed.
+{{- if .Values.ingress.enabled }}
+
+  curl http://{{ .Values.ingress.host }}/
+{{- else }}
+
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "laravel-app.fullname" . }} 8081:80
+  curl http://localhost:8081/
+{{- end }}

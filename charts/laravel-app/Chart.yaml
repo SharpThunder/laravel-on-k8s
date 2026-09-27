@@ -1,0 +1,6 @@
+apiVersion: v2
+name: laravel-app
+description: Laravel on Kubernetes - PHP-FPM + Nginx sidecar, queue worker, scheduler and migrations as a Helm hook
+type: application
+version: 0.1.0
+appVersion: "12"

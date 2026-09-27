@@ -1,0 +1,8 @@
+# The frontend: HTTP only, smaller FPM pool, separate database.
+existingSecret: web-env
+env:
+  APP_NAME: web  # everything else comes from the chart defaults
+fpm:
+  maxChildren: 8
+ingress:
+  host: app.localtest.me

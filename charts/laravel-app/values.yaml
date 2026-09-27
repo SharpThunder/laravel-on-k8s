@@ -1,0 +1,84 @@
+image:
+  fpm:
+    repository: laravel-on-k8s-fpm
+    tag: local
+  web:
+    repository: laravel-on-k8s-web
+    tag: local
+  pullPolicy: IfNotPresent
+
+replicas: 2
+podAnnotations: {}
+
+# Plain (non-secret) environment for every PHP container
+env:
+  APP_NAME: laravel
+  APP_ENV: production
+  APP_DEBUG: "false"
+  LOG_CHANNEL: stderr
+  DB_CONNECTION: mysql
+  DB_HOST: mariadb
+  DB_PORT: "3306"
+  # Cookie sessions keep /up (the readiness check) independent of the database
+  SESSION_DRIVER: cookie
+  CACHE_STORE: database
+  QUEUE_CONNECTION: database
+  MAIL_MAILER: smtp
+  MAIL_HOST: mailpit
+  MAIL_PORT: "1025"
+
+# Secret with APP_KEY, DB_DATABASE, DB_USERNAME, DB_PASSWORD.
+# Leave empty to let the chart create one from secretEnv (demo only).
+existingSecret: ""
+secretEnv: {}
+
+fpm:
+  maxChildren: 10
+  maxRequests: 500
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { memory: 512Mi }
+
+web:
+  resources:
+    requests: { cpu: 20m, memory: 32Mi }
+    limits: { memory: 128Mi }
+
+# User uploads (storage/app/public), shared by FPM (writes) and Nginx (serves)
+uploads:
+  enabled: true
+  size: 1Gi
+  storageClass: ""
+  # Use ReadWriteMany (EFS, NFS, Longhorn...) when pods spread across nodes
+  accessMode: ReadWriteOnce
+
+migrations:
+  enabled: true
+
+worker:
+  enabled: false
+  replicas: 1
+  args: ["queue:work", "--sleep=3", "--tries=3", "--max-time=3600"]
+  resources:
+    requests: { cpu: 50m, memory: 128Mi }
+    limits: { memory: 256Mi }
+
+scheduler:
+  enabled: false
+  schedule: "* * * * *"
+
+ingress:
+  enabled: true
+  className: ""
+  host: app.localtest.me
+  tlsSecret: ""
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  cpu: 70
+
+pdb:
+  enabled: true
+  minAvailable: 1

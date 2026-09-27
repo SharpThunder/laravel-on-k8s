@@ -1,0 +1,30 @@
+{{- if .Values.scheduler.enabled }}
+# Replaces the server crontab: Laravel's scheduler runs once a minute, never overlapping.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "laravel-app.fullname" . }}-scheduler
+  labels: {{- include "laravel-app.labels" . | nindent 4 }}
+spec:
+  schedule: {{ .Values.scheduler.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 300
+      template:
+        metadata:
+          labels:
+            {{- include "laravel-app.selector" . | nindent 12 }}
+            app.kubernetes.io/component: scheduler
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: scheduler
+              image: {{ include "laravel-app.fpmImage" . }}
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["php", "artisan", "schedule:run"]
+              {{- include "laravel-app.phpEnv" . | nindent 14 }}
+{{- end }}

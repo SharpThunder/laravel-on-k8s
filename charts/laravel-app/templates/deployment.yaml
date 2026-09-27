@@ -1,0 +1,109 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "laravel-app.fullname" . }}
+  labels: {{- include "laravel-app.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicas }}
+  {{- end }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      {{- include "laravel-app.selector" . | nindent 6 }}
+      app.kubernetes.io/component: http
+  template:
+    metadata:
+      annotations:
+        checksum/env: {{ toJson .Values.env | sha256sum }}
+        {{- with .Values.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "laravel-app.selector" . | nindent 8 }}
+        app.kubernetes.io/component: http
+    spec:
+      securityContext:
+        fsGroup: 82 # www-data on Alpine, so FPM can write uploads
+      terminationGracePeriodSeconds: 30
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    {{- include "laravel-app.selector" . | nindent 20 }}
+                    app.kubernetes.io/component: http
+      containers:
+        - name: fpm
+          image: {{ include "laravel-app.fpmImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{- include "laravel-app.envItems" . | nindent 12 }}
+            - name: PHP_FPM_MAX_CHILDREN
+              value: {{ .Values.fpm.maxChildren | quote }}
+            - name: PHP_FPM_MAX_REQUESTS
+              value: {{ .Values.fpm.maxRequests | quote }}
+          envFrom:
+            - secretRef:
+                name: {{ include "laravel-app.secretName" . }}
+          ports:
+            - name: fastcgi
+              containerPort: 9000
+          livenessProbe:
+            tcpSocket:
+              port: fastcgi
+            periodSeconds: 10
+          lifecycle:
+            preStop:
+              # Kubernetes sends SIGTERM, which makes FPM drop in-flight requests.
+              # Wait for the endpoint to be removed, then quit gracefully.
+              exec:
+                command: ["sh", "-c", "sleep 5 && kill -QUIT 1"]
+          resources: {{- toYaml .Values.fpm.resources | nindent 12 }}
+          {{- if .Values.uploads.enabled }}
+          volumeMounts:
+            - name: uploads
+              mountPath: /var/www/html/storage/app/public
+          {{- end }}
+        - name: nginx
+          image: {{ .Values.image.web.repository }}:{{ .Values.image.web.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: 8080
+          readinessProbe:
+            # Goes through Nginx -> FPM -> Laravel, so it only passes when the whole pod works
+            httpGet:
+              path: /up
+              port: http
+            periodSeconds: 5
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /nginx-health
+              port: http
+            periodSeconds: 10
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sh", "-c", "sleep 5 && nginx -s quit"]
+          resources: {{- toYaml .Values.web.resources | nindent 12 }}
+          {{- if .Values.uploads.enabled }}
+          volumeMounts:
+            - name: uploads
+              mountPath: /var/www/html/public/storage
+              readOnly: true
+          {{- end }}
+      {{- if .Values.uploads.enabled }}
+      volumes:
+        - name: uploads
+          persistentVolumeClaim:
+            claimName: {{ include "laravel-app.fullname" . }}-uploads
+      {{- end }}

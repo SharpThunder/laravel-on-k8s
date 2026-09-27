@@ -1,0 +1,12 @@
+# The API: runs the queue worker and the scheduler, owns its own database.
+existingSecret: api-env
+env:
+  APP_NAME: api  # everything else comes from the chart defaults
+fpm:
+  maxChildren: 12
+worker:
+  enabled: true
+scheduler:
+  enabled: true
+ingress:
+  host: api.localtest.me

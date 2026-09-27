@@ -1,0 +1,29 @@
+{{- if .Values.migrations.enabled }}
+# Runs before the new pods roll out, so new code never meets an old schema.
+# A failed migration fails the Helm release and the old pods keep serving.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "laravel-app.fullname" . }}-migrate
+  labels: {{- include "laravel-app.labels" . | nindent 4 }}
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-weight: "0"
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      labels:
+        {{- include "laravel-app.selector" . | nindent 8 }}
+        app.kubernetes.io/component: migrate
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: migrate
+          image: {{ include "laravel-app.fpmImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["php", "artisan", "migrate", "--force"]
+          {{- include "laravel-app.phpEnv" . | nindent 10 }}
+{{- end }}

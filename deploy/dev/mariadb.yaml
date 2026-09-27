@@ -1,0 +1,65 @@
+# Dev-only database. In production point DB_HOST at a managed database (RDS, Cloud SQL...).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mariadb-init
+data:
+  01-databases.sql: |
+    -- The entrypoint creates app_api and the app user; the frontend gets its own database
+    CREATE DATABASE IF NOT EXISTS app_web CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    GRANT ALL PRIVILEGES ON app_web.* TO 'app'@'%';
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mariadb
+spec:
+  selector: { app: mariadb }
+  ports:
+    - port: 3306
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mariadb
+spec:
+  serviceName: mariadb
+  replicas: 1
+  selector:
+    matchLabels: { app: mariadb }
+  template:
+    metadata:
+      labels: { app: mariadb }
+    spec:
+      containers:
+        - name: mariadb
+          image: mariadb:10.11
+          env:
+            - name: MARIADB_DATABASE
+              value: app_api
+            - name: MARIADB_USER
+              value: app
+            - name: MARIADB_PASSWORD
+              valueFrom: { secretKeyRef: { name: mariadb-auth, key: password } }
+            - name: MARIADB_ROOT_PASSWORD
+              valueFrom: { secretKeyRef: { name: mariadb-auth, key: root-password } }
+          ports:
+            - containerPort: 3306
+          readinessProbe:
+            exec:
+              command: ["healthcheck.sh", "--connect", "--innodb_initialized"]
+            periodSeconds: 5
+          volumeMounts:
+            - { name: data, mountPath: /var/lib/mysql }
+            - { name: init, mountPath: /docker-entrypoint-initdb.d }
+      volumes:
+        - name: init
+          configMap: { name: mariadb-init }
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources:
+          requests:
+            storage: 2Gi

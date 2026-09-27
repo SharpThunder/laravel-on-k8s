@@ -1,0 +1,18 @@
+{{- if .Values.uploads.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "laravel-app.fullname" . }}-uploads
+  labels: {{- include "laravel-app.labels" . | nindent 4 }}
+  annotations:
+    # Uploads are user data: keep them if the release is uninstalled
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [{{ .Values.uploads.accessMode }}]
+  {{- with .Values.uploads.storageClass }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.uploads.size }}
+{{- end }}

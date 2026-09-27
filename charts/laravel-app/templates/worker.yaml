@@ -1,0 +1,32 @@
+{{- if .Values.worker.enabled }}
+# Replaces supervisord on a VM: one queue:work process per pod, scaled with replicas.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "laravel-app.fullname" . }}-worker
+  labels: {{- include "laravel-app.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.worker.replicas }}
+  selector:
+    matchLabels:
+      {{- include "laravel-app.selector" . | nindent 6 }}
+      app.kubernetes.io/component: worker
+  template:
+    metadata:
+      annotations:
+        checksum/env: {{ toJson .Values.env | sha256sum }}
+      labels:
+        {{- include "laravel-app.selector" . | nindent 8 }}
+        app.kubernetes.io/component: worker
+    spec:
+      # queue:work finishes the current job on SIGTERM (needs pcntl, built into the image)
+      terminationGracePeriodSeconds: 90
+      containers:
+        - name: worker
+          image: {{ include "laravel-app.fpmImage" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["php", "artisan"]
+          args: {{- toYaml .Values.worker.args | nindent 12 }}
+          {{- include "laravel-app.phpEnv" . | nindent 10 }}
+          resources: {{- toYaml .Values.worker.resources | nindent 12 }}
+{{- end }}
