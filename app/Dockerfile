@@ -5,9 +5,11 @@
 # ---- source: a stock Laravel app plus the demo routes ----
 FROM composer:2 AS source
 WORKDIR /app
-RUN composer create-project laravel/laravel . "12.*" \
-      --no-dev --no-scripts --prefer-dist --no-interaction --no-progress \
- && rm -f .env database/database.sqlite
+# Resolve dependencies for the PHP version we run, not the one in the composer image
+RUN composer create-project laravel/laravel . "12.*" --no-install --no-scripts --no-interaction \
+ && composer config platform.php 8.3.0 \
+ && composer update --no-dev --no-scripts --prefer-dist --no-interaction --no-progress \
+ && rm -f .env
 COPY routes/web.php routes/web.php
 
 # ---- fpm ----
